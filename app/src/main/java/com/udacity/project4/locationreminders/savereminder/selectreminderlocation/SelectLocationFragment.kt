@@ -154,7 +154,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             if(location != null){
                 userLocation.latitude = location.latitude
                 userLocation.longitude = location.longitude
-                Toast.makeText(requireContext(), "${userLocation.latitude}  ${userLocation.longitude}", Toast.LENGTH_LONG).show()
                 // Animate the camera to home location
                 val homeLatLong = LatLng(userLocation.latitude, userLocation.longitude)
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(homeLatLong, 15f))

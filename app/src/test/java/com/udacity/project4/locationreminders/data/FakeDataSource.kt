@@ -19,6 +19,8 @@ class FakeDataSource : ReminderDataSource {
     // Building database in memory as it is fake one
     private val remindersDao = createRemindersDao(ApplicationProvider.getApplicationContext())
 
+    private var shouldReturnError = false
+
    private fun createRemindersDao(context: Context): RemindersDao {
         return Room.inMemoryDatabaseBuilder(
             context.applicationContext,
@@ -26,8 +28,16 @@ class FakeDataSource : ReminderDataSource {
         ).build().reminderDao()
     }
 
+    fun setShouldReturnError(value: Boolean){
+        shouldReturnError = value
+    }
+
 
     override suspend fun getReminders(): Result<List<ReminderDTO>> = withContext(Dispatchers.IO) {
+        // Check if shouldReturnError is true then return an error
+        if(shouldReturnError){
+            return@withContext Result.Error("Reminders Not Found")
+        }
         return@withContext try {
             Result.Success(remindersDao.getReminders())
         } catch (ex: Exception) {
@@ -42,6 +52,9 @@ class FakeDataSource : ReminderDataSource {
     }
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> = withContext(Dispatchers.IO) {
+        if(shouldReturnError){
+            return@withContext Result.Error("Reminder Not Found")
+        }
         try {
             val reminder = remindersDao.getReminderById(id)
             if (reminder != null) {

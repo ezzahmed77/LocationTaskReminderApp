@@ -1,20 +1,21 @@
 package com.udacity.project4
 
 import android.app.Application
-import androidx.navigation.NavController
-import androidx.navigation.Navigation
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.google.android.gms.maps.model.LatLng
 import com.udacity.project4.locationreminders.RemindersActivity
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.local.LocalDB
@@ -23,11 +24,14 @@ import com.udacity.project4.locationreminders.reminderslist.ReminderListFragment
 import com.udacity.project4.locationreminders.reminderslist.RemindersListViewModel
 import com.udacity.project4.locationreminders.savereminder.SaveReminderFragmentDirections
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
+import com.udacity.project4.locationreminders.ToastMatcher.ToastMatcher
 import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import kotlinx.android.synthetic.main.fragment_save_reminder.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runBlockingTest
+import org.hamcrest.Matchers.`is`
+import org.hamcrest.Matchers.not
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -39,6 +43,7 @@ import org.koin.dsl.module
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 import org.mockito.Mockito
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
 
 
@@ -103,7 +108,7 @@ class RemindersActivityTest :
 
 
     @Test
-    fun addReminder_CheckItIsAdded() {
+    fun addReminder_CheckItIsAdded_ShowToast() = runBlocking {
         // Start the Reminders screen.
         val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
         dataBindingIdlingResource.monitorActivity(activityScenario)
@@ -123,8 +128,21 @@ class RemindersActivityTest :
         onView(withId(R.id.reminderTitle)).perform(ViewActions.typeText("New Reminder Title"))
         onView(withId(R.id.reminderDescription)).perform(ViewActions.typeText("New Reminder Description"))
 
+        // Close softKeyboard before clicking saveButton
+        closeSoftKeyboard()
+
+        // Clicking the location Reminder Text and go to selectLocationFragment
+        onView(withId(R.id.selectLocation)).perform(click())
+        // find the map then add marker
+        onView(withId(R.id.select_location_map_fragment)).perform(click())
+
+        onView(withId(R.id.save_location_button)).perform(click())
+
         // Clicking the Save reminder button
         onView(withId(R.id.saveReminder)).perform(click())
+
+        // Check that the toast is shown
+        onView(withText(R.string.reminder_saved)).inRoot(ToastMatcher()).check(matches(isDisplayed()))
 
         // After navigating to the reminderList screen
         // Clicking on the item after it has been added
@@ -135,6 +153,44 @@ class RemindersActivityTest :
         onView(withId(R.id.titleContentText)).check(matches(withText("New Reminder Title")))
         onView(withId(R.id.descriptionContent)).check(matches(withText("New Reminder Description")))
 
+        return@runBlocking
+    }
+
+
+    @Test
+    fun addReminder_CheckItIsNotAdded_ShowSnackbar() = runBlocking {
+        // Start the Reminders screen.
+        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        // checking the reminderList is displayed
+        onView(withId(R.id.remindersRecyclerView)).check(matches(isDisplayed()))
+
+        // Clicking the addNewReminderButton and navigate to saveReminderFragment
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        // After navigating check all texts are displayed
+        onView(withId(R.id.reminderTitle)).check(matches(isDisplayed()))
+        onView(withId(R.id.reminderDescription)).check(matches(isDisplayed()))
+        onView(withId(R.id.selectLocation)).check(matches(isDisplayed()))
+
+        // Adding some data to the new reminder
+        onView(withId(R.id.reminderTitle)).perform(ViewActions.typeText("New Reminder Title"))
+        onView(withId(R.id.reminderDescription)).perform(ViewActions.typeText("New Reminder Description"))
+
+        // Close softKeyboard before clicking saveButton
+        closeSoftKeyboard()
+        // Here we will not add location to show the snackbar
+
+
+        // Clicking the Save reminder button
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        // Check that the snackbar is shown
+        onView(withText(R.string.err_select_location))
+            .check(matches(isDisplayed()));
+
+        return@runBlocking
     }
 
 }

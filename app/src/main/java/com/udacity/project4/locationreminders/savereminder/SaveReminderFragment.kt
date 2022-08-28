@@ -74,18 +74,10 @@ class SaveReminderFragment : BaseFragment() {
 
         binding.saveReminder.setOnClickListener {
             checkPermissionsAndStartGeofencing()
+
         }
     }
 
-    private fun navigateToReminderList(reminderDataItem : ReminderDataItem){
-        // Validate and Save Data
-        if(_viewModel.validateAndSaveReminder(reminderDataItem)){
-            // Navigate to the reminders screen
-            _viewModel.navigationCommand.postValue(
-                NavigationCommand.To(SaveReminderFragmentDirections.actionSaveReminderFragmentToReminderListFragment())
-            )
-        }
-    }
 
     private fun getReminderDataItemSaved(): ReminderDataItem{
         return ReminderDataItem(
@@ -114,10 +106,12 @@ class SaveReminderFragment : BaseFragment() {
             geofencingClient.addGeofences(geofenceRequest, pendingIntent)
                 .addOnSuccessListener {
                     Log.i(TAG, "Geofence was successfully added")
+                    Toast.makeText(requireContext(), "Geofence Added", Toast.LENGTH_SHORT).show()
                 }
                 .addOnFailureListener { e->
                     val errorMessage = geofenceHelper.getErrorOfGeofence(e)
                     Log.i(TAG, errorMessage)
+                    Toast.makeText(requireContext(), "Geofence Not Added", Toast.LENGTH_SHORT).show()
                 }
     }
 
@@ -166,8 +160,9 @@ class SaveReminderFragment : BaseFragment() {
         locationSettingsResponseTask.addOnCompleteListener {
             if ( it.isSuccessful ) {
                 val reminderDataItem = getReminderDataItemSaved()
-                addNewGeofence(reminderDataItem)
-                navigateToReminderList(reminderDataItem)
+                if(_viewModel.validateAndSaveReminder(reminderDataItem)){
+                    addNewGeofence(reminderDataItem)
+                }
             }
         }
     }
